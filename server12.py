@@ -2410,7 +2410,7 @@ class AdvancedBot(BaseBot):
 
 async def main():
     logger.info("تلاش برای بارگذاری متغیرهای محیطی...")
-    room_id = os.getenv("ROOM_ID", "6a29bd300155734953b2c2de")
+    room_id = os.getenv("ROOM_ID", "6a29bcb958070610178270ed")
     api_token = os.getenv("API_TOKEN", "2655d9a3c633bf8365bb863c963927a18301474340cb5515736cc721d39e7150")
     
     if not room_id or not api_token:
