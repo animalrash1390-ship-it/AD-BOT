@@ -2414,7 +2414,6 @@ async def handle_ping(request):
 async def main():
     logger.info("تلاش برای بارگذاری متغیرهای محیطی...")
     
-    # آیدی روم و توکن جدید شما
     room_id = os.getenv("ROOM_ID", "6a29bcb958070610178270ed")
     api_token = os.getenv("API_TOKEN", "9a089b7f9bb1f38a943a6add2af7e1823a709e51119a7f9c7f870b443bb8c4cc")
     
@@ -2451,9 +2450,8 @@ async def main():
             logger.error(f"اتصال WebSocket قطع شد یا با خطا مواجه شد: {e}")
             await bot_def.bot.cleanup_tasks()
             attempt += 1
-            await sleep(5)
+            await sleep(5) # اصلاح شده به sleep ساده برای هماهنگی با خط ۳ کدت
 
 if __name__ == "__main__":
     import asyncio
     asyncio.run(main())
-
