@@ -1988,42 +1988,6 @@ class AdvancedBot(BaseBot):
         except Exception as e:
             await self.highrise.chat(self.get_message("teleport_error", error=str(e)))
             logger.error(f"خطا در cmd_down: {e}")
-
-                async def cmd_changeroom(self, user: User, args: list):
-        """دستور فوق امنیتی و اختصاصی فقط برای ad0ri جهت تغییر روم و ری‌استارت فایل"""
-        import os
-        import sys
-        import asyncio
-
-        # 🔒 قفل سخت‌گیرانه: فقط آیدی دقیق ad0ri اجازه عبور دارد
-        if user.username.lower() != "ad0ri":
-            await self.highrise.chat("❌ خطا: این دستور کاملاً اختصاصی است و شما دسترسی اجرای آن را ندارید.")
-            return
-
-        # بررسی وارد شدن آیدی روم جدید
-        if not args or len(args) < 1:
-            await self.highrise.chat("⚠️ لطفاً آیدی روم جدید را جلوی دستور بنویسید.\nمثال: !changeroom ID_ROOM")
-            return
-
-        new_room_id = args[0].strip()
-        
-        await self.highrise.chat(f"🚀 دستور انتقال به روم جدید توسط ad0ri تایید شد. در حال دیسکانکت و انتقال...")
-        logger.info(f"مالک ربات (ad0ri) دستور انتقال به روم {new_room_id} را صادر کرد.")
-        
-        # 📝 تزریق مستقیم متغیر به سیستم‌عامل برای ری‌استارت تمیز
-        os.environ["ROOM_ID"] = new_room_id
-        
-        # ۱. بستن کانکشن فعلی برای جلوگیری از باگ روح
-        try:
-            if hasattr(self, 'highrise') and self.highrise:
-                await self.highrise.close()
-        except Exception:
-            pass
-            
-        await asyncio.sleep(3) # فرصت به سرور بازی برای فهمیدن دیسکانکت
-        
-        # ۲. ری‌استارت امن کل پردازش پایتون (متغیر ROOM_ID در فرآیند جدید اعمال می‌شود)
-        os.execv(sys.executable, ['python'] + sys.argv)
     
     async def cmd_ban(self, user: User, message: str):
         if user.username.lower() not in self.config["admin_usernames"]:
