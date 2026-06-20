@@ -1230,13 +1230,13 @@ class AdvancedBot(BaseBot):
             logger.error(f"خطا در پردازش تیپ از {sender.username} به {receiver.username}: {e}")
             await self.highrise.chat(f"خطا در پردازش تیپ از @{sender.username} به @{receiver.username}: {e}")
 
-        async def start_dance(self, user: User, emote: str):
+    async def start_dance(self, user: User, emote: str):
         username = user.username.lower()
         await self.stop_dance(user)
         self.user_dances[username] = emote
         duration = self.emote_durations.get(emote, 7.5)
 
-        async def dance_loop():
+    async def dance_loop():
             try:
                 while self.user_dances.get(username) == emote:
                     await self.highrise.send_emote(emote, user.id)
