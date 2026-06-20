@@ -2424,28 +2424,44 @@ async def start_background_web_server():
     except Exception as e:
         logger.error(f"خطا در اجرای وب‌سرور پس‌زمینه: {e}")
     
+# ۲. تابع اصلی اجرای ربات (نسخه ضدضربه و مجهز به کنترل خطای تسک‌ها)
 async def main():
-    # خواندن متغیرها مستقیماً از پنل رندر
-    room_id = os.getenv("ROOM_ID", "678e7c1eb8d7f7639ba96f3a")
-    api_token = os.getenv("API_TOKEN", "9a089b7f9bb1f38a943a6add2af7e1823a709e51119a7f9c7f870b443bb8c4cc")
-
-    if not api_token:
-        logger.error("❌ خطای بحرانی: متغیر API_TOKEN در پنل رندر تنظیم نشده است!")
-        return
-
+    import os
+    import asyncio
     import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+    
+    logger.info("تلاش برای بارگذاری متغیرهای محیطی...")
+    room_id = os.getenv("ROOM_ID", "68e771922d585712212e8070")
+    api_token = os.getenv("API_TOKEN", "9a089b7f9bb1f38a943a6add2af7e1823a709e51119a7f9c7f870b443bb8c4cc")
+    
+    if not room_id or not api_token:
+        logger.error("ROOM_ID یا API_TOKEN تنظیم نشده‌اند.")
+        return
+    
+    logger.info(f"ROOM_ID: {room_id}")
+    logger.info(f"API_TOKEN: {api_token}")
+
+    # ساختار وب‌سرور داخلی و سبک پایتون
+    class PingHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(b"Bot is Alive!")
+        def log_message(self, format, *args):
+            return
+
     def run_web_server():
         try:
-            from flask import Flask
-            app = Flask(__name__)
-            @app.route('/')
-            def home(): return "Bot is running live!"
             port = int(os.getenv("PORT", 8080))
-            app.run(host='0.0.0.0', port=port)
+            server = HTTPServer(('0.0.0.0', port), PingHandler)
+            logger.info(f"وب‌سرور زنده نگهدارنده روی پورت {port} فعال شد.")
+            server.serve_forever()
         except Exception as e:
             logger.error(f"خطا در اجرای وب‌سرور پس‌زمینه: {e}")
 
-    # اجرای وب‌سرور در یک نخ کاملاً جداگانه برای جلوگیری از فریز شدن رندر
+    # اجرای وب‌سرور در یک نخ کاملاً جداگانه برای جلوگیری از فریز شدن
     web_thread = threading.Thread(target=run_web_server, daemon=True)
     web_thread.start()
 
@@ -2460,14 +2476,13 @@ async def main():
     except Exception as le:
         logger.error(f"خطا در تنظیم exception handler: {le}")
 
-    # اجرای استاندارد با ساختار اصلی و دنس‌های خودت
     bot_def = BotDefinition(room_id=room_id, api_token=api_token, bot=AdvancedBot())
     
     max_reconnect_attempts = 10
     attempt = 0
     while attempt < max_reconnect_attempts:
         try:
-            logger.info(f"تلاش برای اتصال به سرور Highrise در روم: {room_id}")
+            logger.info("تلاش برای اتصال به سرور Highrise...")
             from highrise.__main__ import main as highrise_main
             await highrise_main([bot_def])
         except Exception as e:
@@ -2477,7 +2492,8 @@ async def main():
             except Exception:
                 pass
             attempt += 1
-            await asyncio.sleep(5)
+            logger.info(f"انتظار برای اتصال مجدد... تلاش {attempt} از {max_reconnect_attempts}")
+            await asyncio.sleep(6)
 
 if __name__ == "__main__":
     import asyncio
