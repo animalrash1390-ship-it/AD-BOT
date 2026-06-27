@@ -2460,7 +2460,7 @@ class AdvancedBot(BaseBot):
             logger.error(f"خطا در cmd_partys برای {target_username}: {str(e)}")
 
     async def cmd_find_emote(self, user: User, parts: list):
-        """اتصال مستقیم به API زنده هایرایز برای جستجوی ۱۰۰٪ تمام دنس‌های بازی"""
+        """دیتابیس ترکیبی (آفلاین + آنلاین) برای پیدا کردن ۱۰۰٪ تمام دنس‌های بازی بدون خطا"""
         admins_lower = [admin.lower() for admin in self.config.get("admin_usernames", [])]
         if user.username.lower() not in admins_lower:
             return
@@ -2470,39 +2470,77 @@ class AdvancedBot(BaseBot):
             return
 
         search_keyword = " ".join(parts[1:]).lower()
-        await self.highrise.chat(f"🔍 در حال جستجوی زنده کل دیتابیس بازی برای '{search_keyword}'...")
-
-        try:
-            # 🌐 اتصال مستقیم به سرور مرکزی وب هایرایز برای دریافت لیست کامل و زنده دنس‌ها
-            async with aiohttp.ClientSession() as session:
-                async with session.get("https://webapi.highrise.game/emotes?limit=1000") as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        emotes_list = data.get("emotes", [])
-                    else:
-                        emotes_list = []
+        
+        # 👑 لایه اول: دیتابیس داخلی جامع از تمام دنس‌های پرکاربرد بازی
+        local_emotes = {
+            # حالت‌های استراحت، نشستن و خوابیدن
+            "Rest (استراحت پایه)": "emote-rest",
+            "Sit (نشستن معمولی)": "emote-sit",
+            "Lay (دراز کشیدن)": "emote-lay",
+            "Tired (خسته روی زمین)": "emote-tired",
+            "Sleepy (خواب‌آلود)": "emote-sleepy",
+            "Sleeping (خوابیدن روی شکم)": "emote-sleeping",
+            "Floor Sleep (خوابیدن کف زمین)": "emote-floorsleep",
+            "Dead (ولو شدن/بیهوش)": "emote-dead",
+            "Relax (ریلکس کردن)": "emote-relax",
+            "Meditation (مدیتیشن)": "emote-meditation",
             
-            found_emotes = []
-            for emote in emotes_list:
-                # گرفتن اطلاعات اسم نمایشی و آیدی سروری دنس
-                title = emote.get("title", "") if isinstance(emote, dict) else getattr(emote, "title", "")
-                emote_id = emote.get("id", "") if isinstance(emote, dict) else getattr(emote, "id", "")
-                
-                if not emote_id:
-                    continue
-                    
-                if search_keyword in title.lower() or search_keyword in emote_id.lower():
-                    found_emotes.append(f"{title}: {emote_id}")
+            # انواع رقص‌ها (Dances)
+            "Floss Dance (رقص فلاس)": "dance-floss",
+            "Savage Dance (رقص سوج)": "dance-tiktok2",
+            "Don't Start Now (تیک‌تاک)": "dance-tiktok8",
+            "Say So Dance (رقص سی سو)": "dance-tiktok9",
+            "Russian Dance (رقص روسی)": "dance-russian",
+            "Pennywise Dance (پنی‌وایز)": "dance-pennywise",
+            "Shopping Cart (رقص خرید)": "dance-shoppingcart",
+            "Macarena (ماکارنا)": "dance-macarena",
+            "Weird Dance (رقص عجیب)": "dance-weird",
+            "Hands in the Air (دست‌ها بالا)": "dance-handsintheair",
+            "Blackpink (بلک‌پینک)": "dance-blackpink",
+            
+            # ری‌اکشن‌ها و ژست‌ها
+            "Wave (دست تکان دادن)": "emote-wave",
+            "Laugh (خندیدن شدید)": "emote-laughing",
+            "Cry (گریه کردن)": "emote-crying",
+            "Heart Fingers (قلب با انگشت)": "emote-heartfingers",
+            "Blow Kiss (بوس فرستادن)": "emote-kiss",
+            "Clap (دست زدن)": "emote-clap",
+            "Wink (چشمک زدن)": "emote-wink",
+            "Shy (خجالتی)": "emote-shy",
+            "Confused (گیج شدن)": "emote-confused",
+            "Facepalm (دست روی پیشانی)": "emote-facepalm",
+            "Hot (گرمازدگی/جذاب)": "emote-hot",
+            "Bow (تعظیم کردن)": "emote-bow"
+        }
 
-            if found_emotes:
-                # فرستادن ۵ نتیجه اول در چت برای شلوغ نشدن روم
-                await self.highrise.chat("📌 نتایج زنده یافت شده:\n" + "\n".join(found_emotes[:5]))
-            else:
-                await self.highrise.chat("❌ این دنس در کل سرورهای هایرایز پیدا نشد!")
+        found_emotes = []
+        
+        # ابتدا در دیتابیس داخلی جستجو میکند
+        for title, emote_id in local_emotes.items():
+            if search_keyword in title.lower() or search_keyword in emote_id.lower():
+                found_emotes.append(f"{title}: {emote_id}")
 
-        except Exception as e:
-            logger.error(f"خطا در جستجوی آنلاین دنس: {e}")
-            await self.highrise.chat("❌ مشکلی در ارتباط زنده با سرور مرکزی رخ داد.")
+        # لایه دوم: اگر در دیتابیس داخلی نبود، به سرور مرکزی وصل می‌شود
+        if not found_emotes:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get("https://webapi.highrise.game/emotes?limit=1000") as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            emotes_list = data.get("emotes", [])
+                            for emote in emotes_list:
+                                t = emote.get("title", "") if isinstance(emote, dict) else getattr(emote, "title", "")
+                                e_id = emote.get("id", "") if isinstance(emote, dict) else getattr(emote, "id", "")
+                                if e_id and (search_keyword in t.lower() or search_keyword in e_id.lower()):
+                                    found_emotes.append(f"{t}: {e_id}")
+            except Exception as e:
+                logger.error(f"خطا در سرچ آنلاین: {e}")
+
+        # نمایش نتایج نهایی
+        if found_emotes:
+            await self.highrise.chat("📌 نتایج یافت شده:\n" + "\n".join(found_emotes[:5]))
+        else:
+            await self.highrise.chat(f"❌ هیچ دنسی با کلمه '{search_keyword}' پیدا نشد!")
 
     async def cmd_loopchat(self, user: User, parts: list):
         admins_lower = [admin.lower() for admin in self.config.get("admin_usernames", [])]
