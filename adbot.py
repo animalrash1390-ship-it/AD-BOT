@@ -1332,11 +1332,8 @@ class AdvancedBot(BaseBot):
         await self.stop_dance(user)
         self.user_dances[username] = emote
         duration = self.emote_durations.get(emote, 7.5)
-        # ⚡ ترفند طلایی: duration - 3.2 برای تکرار صفر تاخیر
-        if duration > 4.5:
-            sleep_time = duration - 3.2
-        else:
-            sleep_time = max(1.0, duration - 1.5)
+        # یک تاخیر کوچک قبل از تکرار تا انیمیشن کامل پخش بشه و قاطی نشه
+        sleep_time = max(duration - 0.3, 1.0)
 
         async def dance_loop():
             try:
@@ -2575,15 +2572,11 @@ class AdvancedBot(BaseBot):
         await self.highrise.chat(f"✅ دنس ربات روی حالت تکرار همیشگی (Loop) تنظیم شد: [{input_emote}]")
         logger.info(f"دنس مداوم ربات به {actual_emote_name} توسط {user.username} تغییر کرد.")
 
-        # ⚡ دریافت زمان واقعی دنس از دیتابیس ربات
+        # دریافت زمان واقعی دنس از دیتابیس ربات
         duration = self.emote_durations.get(actual_emote_name, 5.0)
         
-        # 🔥 ترفند طلایی: کاهش زمان خواب ربات به اندازه ۳.۲ ثانیه!
-        # این کار باعث می‌شود دنس بعدی دقیقاً در لحظه طلایی (قبل از ایستادن کاراکتر) ارسال شود و تاخیر پینگ سرور کاملاً صفر شود.
-        if duration > 4.5:
-            sleep_time = duration - 3.2
-        else:
-            sleep_time = max(1.0, duration - 1.5)
+        # یک تاخیر کوچک قبل از تکرار تا انیمیشن کامل پخش بشه و قاطی نشه
+        sleep_time = max(duration - 0.3, 1.0)
 
         # شروع حلقه دنس بدون وقفه و روان
         async def new_emote_loop():
